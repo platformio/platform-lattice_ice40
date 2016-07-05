@@ -1,0 +1,31 @@
+{
+  "name": "lattice_ice40",
+  "title": "Lattice iCE40",
+  "description": "The iCE40 family of ultra-low power, non-volatile FPGAs has five devices with densities ranging from 384 to 7680 Look-Up Tables (LUTs). In addition to LUT-based,low-cost programmable logic, these devices feature Embedded Block RAM (EBR), Non-volatile Configuration Memory (NVCM) and Phase Locked Loops (PLLs). These features allow the devices to be used in low-cost, high-volume consumer and system applications.",
+  "url": "http://www.latticesemi.com/Products/FPGAandCPLD/iCE40.aspx",
+  "homepage": "http://platformio.org/platforms/lattice_ice40",
+  "license": {
+    "type": "Apache-2.0",
+    "url": "http://opensource.org/licenses/apache2.0.php"
+  },
+  "engines": {
+    "platformio": "~3.0.0",
+    "scons": ">=2.3.0,<2.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/platformio/platform-lattice_ice40.git"
+  },
+  "version": "0.0.0",
+  "packageRepositories": [
+    "https://dl.bintray.com/platformio/dl-packages/manifest.json",
+    "https://sourceforge.net/projects/platformio-storage/files/packages/manifest.json/download",
+    "http://dl.platformio.org/packages/manifest.json"
+  ],
+  "packages": {
+    "toolchain-icestorm": {
+      "type": "toolchain",
+      "version": "~1.7.0"
+    }
+  }
+}
