@@ -1,4 +1,4 @@
-# Copyright 2014-present Ivan Kravets <me@ikravets.com>
+# Copyright 2014-present PlatformIO <contact@platformio.org>
 # Copyright 2016 Juan Gonzalez <juan@iearobotics.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
