@@ -1,0 +1,25 @@
+{
+  "build": {
+    "core": "icezum", 
+    "cpu": "fpga", 
+    "f_cpu": "12000000L", 
+    "hwids": [
+      [
+        "0x0403", 
+        "0x6010"
+      ]
+    ], 
+    "mcu": "ice40hx1k", 
+    "variant": "1k"
+  }, 
+  "frameworks": [
+    "icestorm"
+  ], 
+  "name": "BQ IceZUM Alhambra FPGA", 
+  "upload": {
+    "maximum_ram_size": 32768, 
+    "maximum_size": 32768
+  }, 
+  "url": "https://github.com/bqlabs/icezum/wiki", 
+  "vendor": "BQ"
+}
