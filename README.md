@@ -16,5 +16,5 @@ ARC embedded processors are a family of 32-bit CPUs that are widely used in SoC 
 > platformio platform install lattice_ice40
 
 # install development version
-> platformio platform install https://github.com/platformio/platform-lattice_ice40/archive/develop.zip
+> platformio platform install https://github.com/platformio/platform-lattice_ice40.git
 ```

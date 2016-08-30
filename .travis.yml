@@ -1,14 +1,23 @@
 language: python
 python:
-    - "2.7"
+  - "2.7"
 
 env:
-    - PLATFORMIO_PROJECT_DIR=examples/counter
-    - PLATFORMIO_PROJECT_DIR=examples/leds
+  - PLATFORMIO_PROJECT_DIR=examples/counter
+  - PLATFORMIO_PROJECT_DIR=examples/leds
 
 install:
-    - pip install -U https://github.com/platformio/platformio/archive/feature/platformio-30.zip
-    - platformio platform install file://.
+  - pip install -U https://github.com/platformio/platformio/archive/develop.zip
+  - platformio platform install file://.
 
 script:
-    - platformio run -d $PLATFORMIO_PROJECT_DIR
+  - platformio run -d $PLATFORMIO_PROJECT_DIR
+
+notifications:
+  email: false
+
+  slack:
+    rooms:
+      secure: kWtkQLVt1Ri2UxVbvmqHD1MVzb4cpc5pyjstQdoeQJ3F6tZBd0VUFHFIcYtjpAisFStOnOjruPjqfN7vh8xim5V4Ebmx4+4YCth27DZkTJsN5n1Y+GVy/DcY/hIwaqEB5p2Tzj9Va+VTGfQTjL36pZovxQ8muHSC9kj0UsusrWYQcdG7f02kh/qho1YEfvG7aF4OxBBDaB29lg6OH4L1C37K/HKye0HO64rvXGbOuNWHqYIRd+D58ZSkHwzUpIAuby7mLz0Fd8sOnBnl3x9h6o3/TnWeYLOdxMgLZdXjTSXp0z+LSLxo5zW5YBgYa6VmTsAChdXL5Vp1/Q298KV1GZg1wTbU0WdHaVAAyegWFBdt9fp9KhJ5RRRFWVfQc9PmSv3zKDl/wVFQZRBNmYVrsfCHQUfDiEinnyvaJJDc7lny4B031JTq94/S11kStYsi20zRNGL5IeCEVJemxjQ1G9VMVeZEuVCHUUl6jK+A4JewLr7gehjg9oGgMjwU8xshkK9UBGfl8yv56F0JEVlQq6wTTuiKcw6ob0l/WFkY8RCvTWyW46GhRXJi6e8keUqa0jfgXtjgbOh6mgPo2zRTrD4sby6O+zmz+hZRyGfNrJmWsFQrS7cCRkRAdPgpv9onwxV65P/z6CjAQUF5OGC69twibOXq5nGx7TzmRvZKnp8=
+    on_failure: always
+    on_success: change
