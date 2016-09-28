@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 # Copyright 2014-present PlatformIO <contact@platformio.org>
-# Copyright 2016 Juan Gonzalez <juan@iearobotics.com>
+# Copyright 2016 Juan González <juan@iearobotics.com>
+#                Jesús Arroyo Torrens <jesus.jkhlg@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +17,10 @@
 
 """
     Build script for lattice ice40 FPGAs
-    latticeice40-builder.py
 """
 
 import os
+import platform
 from os.path import join
 
 from SCons.Script import (COMMAND_LINE_TARGETS, AlwaysBuild, Builder, Default,
@@ -32,8 +34,10 @@ env.Append(SIMULNAME="simulation")
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
 
-# -- Target name for simulation
-# TARGET_SIM = join(env['PROJECT_DIR'], env['SIMULNAME'])
+# Binary extension
+EXT = ''
+if 'Windows' == platform.system():
+    EXT = '.exe'
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
@@ -67,7 +71,6 @@ if 'sim' in COMMAND_LINE_TARGETS:
 else:
     SIMULNAME = ''
 
-
 TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME)
 
 # -------- Get the synthesis files.  They are ALL the files except the
@@ -85,35 +88,51 @@ PCF_list = Glob(PCFs)
 try:
     PCF = PCF_list[0]
 except IndexError:
-    print "\n--------> ERROR: no .pcf file found <----------\n"
+    print "\n---> ERROR: no .pcf file found <----------\n"
     Exit(2)
 
 # -- Debug
-print "----> PCF Found: %s" % PCF
+print "---> PCF Found: %s" % PCF
 
 # -- Builder 1 (.v --> .blif)
 synth = Builder(
-    action='yosys -p \"synth_ice40 -blif %s.blif\" $SOURCES' % TARGET,
+    action='yosys{0} -p \"synth_ice40 -blif $TARGET\" $SOURCES'.format(
+        EXT),
     suffix='.blif',
     src_suffix='.v')
 
 # -- Builder 2 (.blif --> .asc)
 pnr = Builder(
-    action='arachne-pnr -d 1k -o $TARGET -p %s $SOURCE' % PCF,
+    action='arachne-pnr{0} -d {1} -P {2} -p {3} -o $TARGET $SOURCE'.format(
+        EXT,
+        env.BoardConfig().get('build.size', '1k'),
+        env.BoardConfig().get('build.pack', 'tq144'),
+        PCF
+    ),
     suffix='.asc',
     src_suffix='.blif')
 
 # -- Builder 3 (.asc --> .bin)
 bitstream = Builder(
-    action='icepack $SOURCE $TARGET',
+    action='icepack{0} $SOURCE $TARGET'.format(
+        EXT
+    ),
     suffix='.bin',
     src_suffix='.asc')
 
 # -- Builder 4 (.asc --> .rpt)
+# NOTE: current icetime requires a fixed PREFIX during compilation
+# https://github.com/cliffordwolf/icestorm/issues/57
 time_rpt = Builder(
-    action='icetime -mtr $TARGET $SOURCE',
+    action='icetime{0} -d {1}{2} -P {3} -mtr $TARGET $SOURCE'.format(
+        EXT,
+        env.BoardConfig().get('build.type', 'hx'),
+        env.BoardConfig().get('build.size', '1k'),
+        env.BoardConfig().get('build.pack', 'tq144')
+    ),
     suffix='.rpt',
     src_suffix='.asc')
+
 
 env.Append(BUILDERS={
     'Synth': synth, 'PnR': pnr, 'Bin': bitstream, 'Time': time_rpt})
@@ -122,12 +141,14 @@ blif = env.Synth(TARGET, [src_synth])
 asc = env.PnR(TARGET, [blif, PCF])
 binf = env.Bin(TARGET, asc)
 
-upload = env.Alias('upload', binf, 'iceprog ' + ' $SOURCE')
+upload = env.Alias('upload', binf, 'iceprog{0} $SOURCE'.format(EXT))
 AlwaysBuild(upload)
 
 # -- Target for calculating the time (.rpt)
 # rpt = env.Time(asc)
 t = env.Alias('time', env.Time('time.rpt', asc))
+
+# TODO: update when toolchain-iverilog is uploaded
 
 # -------------------- Simulation ------------------
 # -- Constructor para generar simulacion: icarus Verilog
