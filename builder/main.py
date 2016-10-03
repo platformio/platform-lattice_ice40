@@ -20,8 +20,8 @@
 """
 
 import os
-import platform
 from os.path import join
+from platform import system
 
 from SCons.Script import (COMMAND_LINE_TARGETS, AlwaysBuild, Builder, Default,
                           DefaultEnvironment, Environment, Exit, GetOption,
@@ -34,7 +34,16 @@ env.Append(SIMULNAME="simulation")
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
 
-# if 'Windows' == platform.system():
+# -- Resources paths
+pioPlatform = env.PioPlatform()
+IVL_PATH = join(
+    pioPlatform.get_package_dir('toolchain-iverilog'), 'lib', 'ivl')
+VLIB_PATH = join(
+    pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib', 'system.v')
+
+isWindows = 'Windows' != system()
+VVP_PATH = '-M {0}'.format(IVL_PATH) if isWindows else ''
+IVER_PATH = '-B {0}'.format(IVL_PATH) if isWindows else ''
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
@@ -89,7 +98,7 @@ except IndexError:
     Exit(1)
 
 # -- Debug
-print "---> PCF Found: %s" % PCF
+print "PCF: %s" % PCF
 
 # -- Builder 1 (.v --> .blif)
 synth = Builder(
@@ -138,35 +147,37 @@ upload = env.Alias('upload', binf, 'iceprog $SOURCE')
 AlwaysBuild(upload)
 
 # -- Target for calculating the time (.rpt)
-# rpt = env.Time(asc)
-t = env.Alias('time', env.Time('time.rpt', asc))
+rpt = env.Time(asc)
+t = env.Alias('time', rpt)
+AlwaysBuild(t)
 
-# TODO: update when toolchain-iverilog is uploaded
+# -- Icarus Verilog builders
+
+iverilog = Builder(
+    action='iverilog {0} -o $TARGET {1} -D VCD_OUTPUT={2} $SOURCES'.format(
+        IVER_PATH, VLIB_PATH, TARGET_SIM),
+   suffix='.out',
+   src_suffix='.v')
+
+# NOTE: output file name is defined in the iverilog call using VCD_OUTPUT macro
+vcd = Builder(
+    action='vvp {0} $SOURCE'.format(
+        VVP_PATH),
+    suffix='.vcd',
+    src_suffix='.out')
 
 # -------------------- Simulation ------------------
-# -- Constructor para generar simulacion: icarus Verilog
-iverilog = Builder(action='iverilog -o $TARGET $SOURCES ',
-                   suffix='.out',
-                   src_suffix='.v')
+env.Append(BUILDERS={'IVerilog': iverilog, 'VCD': vcd})
 
-vcd = Builder(action=' $SOURCE',
-              suffix='.vcd', src_suffix='.out')
+out = env.IVerilog(TARGET_SIM, src_sim)
+vcd_file = env.VCD(out)
 
-simenv = Environment(BUILDERS={'IVerilog': iverilog, 'VCD': vcd},
-                     ENV=os.environ)
-
-out = simenv.IVerilog(TARGET_SIM, src_sim)
-vcd_file = simenv.VCD(SIMULNAME, out)
-
-waves = simenv.Alias('sim', vcd_file, 'gtkwave ' +
-                     join(env['PROJECT_DIR'], "%s " % vcd_file[0]) +
-                     join(env['PROJECTSRC_DIR'], SIMULNAME) +
-                     '.gtkw')
+waves = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
+    vcd_file[0], join(env['PROJECTSRC_DIR'], SIMULNAME)))
 AlwaysBuild(waves)
 
 Default([binf])
 
 # -- These is for cleaning the files generated using the alias targets
 if GetOption('clean'):
-    env.Default([t])
-    simenv.Default([out, vcd_file])
+    env.Default([t, sout, vcd_file])
