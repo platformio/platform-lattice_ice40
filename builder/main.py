@@ -151,7 +151,6 @@ t = env.Alias('time', rpt)
 AlwaysBuild(t)
 
 # -- Icarus Verilog builders
-
 iverilog = Builder(
     action='iverilog {0} -o $TARGET {1} -D VCD_OUTPUT={2} $SOURCES'.format(
         IVER_PATH, VLIB_PATH, TARGET_SIM),
@@ -174,7 +173,6 @@ verify = env.Alias('verify', vout)
 AlwaysBuild(verify)
 
 # --- Simulation
-
 sout = env.IVerilog(TARGET_SIM, src_sim)
 vcd_file = env.VCD(sout)
 
