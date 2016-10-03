@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 # Copyright 2014-present PlatformIO <contact@platformio.org>
-# Copyright 2016 Juan Gonzalez <juan@iearobotics.com>
+# Copyright 2016 Juan González <juan@iearobotics.com>
+#                Jesús Arroyo Torrens <jesus.jkhlg@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,11 +17,11 @@
 
 """
     Build script for lattice ice40 FPGAs
-    latticeice40-builder.py
 """
 
 import os
 from os.path import join
+from platform import system
 
 from SCons.Script import (COMMAND_LINE_TARGETS, AlwaysBuild, Builder, Default,
                           DefaultEnvironment, Environment, Exit, GetOption,
@@ -32,15 +34,23 @@ env.Append(SIMULNAME="simulation")
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
 
-# -- Target name for simulation
-# TARGET_SIM = join(env['PROJECT_DIR'], env['SIMULNAME'])
+# -- Resources paths
+pioPlatform = env.PioPlatform()
+IVL_PATH = join(
+    pioPlatform.get_package_dir('toolchain-iverilog'), 'lib', 'ivl')
+VLIB_PATH = join(
+    pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib', 'system.v')
+
+isWindows = 'Windows' != system()
+VVP_PATH = '-M {0}'.format(IVL_PATH) if isWindows else ''
+IVER_PATH = '-B {0}'.format(IVL_PATH) if isWindows else ''
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
 v_nodes = Glob(join(env['PROJECTSRC_DIR'], '*.v'))
 src_sim = [str(f) for f in v_nodes]
 
-# --------- Get the Testbench file (there should be only 1)
+# --- Get the Testbench file (there should be only 1)
 # -- Create a list with all the files finished in _tb.v. It should contain
 # -- the test bench
 list_tb = [f for f in src_sim if f[-5:].upper() == "_TB.V"]
@@ -58,7 +68,7 @@ except IndexError:
 
 if 'sim' in COMMAND_LINE_TARGETS:
     if testbench is None:
-        print "ERROR!!! NO testbench found for simulation"
+        print "---> ERROR: NO testbench found for simulation"
         Exit(1)
 
     # -- Simulation name
@@ -67,11 +77,9 @@ if 'sim' in COMMAND_LINE_TARGETS:
 else:
     SIMULNAME = ''
 
-
 TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME)
 
-# -------- Get the synthesis files.  They are ALL the files except the
-# -------- testbench
+# --- Get the synthesis files. They are ALL the files except the testbench
 src_synth = [f for f in src_sim if f not in list_tb]
 
 # -- For debugging
@@ -85,21 +93,25 @@ PCF_list = Glob(PCFs)
 try:
     PCF = PCF_list[0]
 except IndexError:
-    print "\n--------> ERROR: no .pcf file found <----------\n"
-    Exit(2)
+    print "---> ERROR: no .pcf file found"
+    Exit(1)
 
 # -- Debug
-print "----> PCF Found: %s" % PCF
+print "PCF: %s" % PCF
 
 # -- Builder 1 (.v --> .blif)
 synth = Builder(
-    action='yosys -p \"synth_ice40 -blif %s.blif\" $SOURCES' % TARGET,
+    action='yosys -p \"synth_ice40 -blif $TARGET\" $SOURCES',
     suffix='.blif',
     src_suffix='.v')
 
 # -- Builder 2 (.blif --> .asc)
 pnr = Builder(
-    action='arachne-pnr -d 1k -o $TARGET -p %s $SOURCE' % PCF,
+    action='arachne-pnr -d {0} -P {1} -p {2} -o $TARGET $SOURCE'.format(
+        env.BoardConfig().get('build.size', '1k'),
+        env.BoardConfig().get('build.pack', 'tq144'),
+        PCF
+    ),
     suffix='.asc',
     src_suffix='.blif')
 
@@ -110,10 +122,18 @@ bitstream = Builder(
     src_suffix='.asc')
 
 # -- Builder 4 (.asc --> .rpt)
+# NOTE: new icetime requires a fixed PREFIX during compilation
+#       update on toolchain-icestorm 1.10.0
+# https://github.com/cliffordwolf/icestorm/issues/57
 time_rpt = Builder(
-    action='icetime -mtr $TARGET $SOURCE',
+    action='icetime -d {0}{1} -P {2} -mtr $TARGET $SOURCE'.format(
+        env.BoardConfig().get('build.type', 'hx'),
+        env.BoardConfig().get('build.size', '1k'),
+        env.BoardConfig().get('build.pack', 'tq144')
+    ),
     suffix='.rpt',
     src_suffix='.asc')
+
 
 env.Append(BUILDERS={
     'Synth': synth, 'PnR': pnr, 'Bin': bitstream, 'Time': time_rpt})
@@ -122,37 +142,46 @@ blif = env.Synth(TARGET, [src_synth])
 asc = env.PnR(TARGET, [blif, PCF])
 binf = env.Bin(TARGET, asc)
 
-upload = env.Alias('upload', binf, 'iceprog ' + ' $SOURCE')
+upload = env.Alias('upload', binf, 'iceprog $SOURCE')
 AlwaysBuild(upload)
 
 # -- Target for calculating the time (.rpt)
-# rpt = env.Time(asc)
-t = env.Alias('time', env.Time('time.rpt', asc))
+rpt = env.Time(asc)
+t = env.Alias('time', rpt)
+AlwaysBuild(t)
 
-# -------------------- Simulation ------------------
-# -- Constructor para generar simulacion: icarus Verilog
-iverilog = Builder(action='iverilog -o $TARGET $SOURCES ',
-                   suffix='.out',
-                   src_suffix='.v')
+# -- Icarus Verilog builders
+iverilog = Builder(
+    action='iverilog {0} -o $TARGET {1} -D VCD_OUTPUT={2} $SOURCES'.format(
+        IVER_PATH, VLIB_PATH, TARGET_SIM),
+   suffix='.out',
+   src_suffix='.v')
 
-vcd = Builder(action=' $SOURCE',
-              suffix='.vcd', src_suffix='.out')
+# NOTE: output file name is defined in the iverilog call using VCD_OUTPUT macro
+vcd = Builder(
+    action='vvp {0} $SOURCE'.format(
+        VVP_PATH),
+    suffix='.vcd',
+    src_suffix='.out')
 
-simenv = Environment(BUILDERS={'IVerilog': iverilog, 'VCD': vcd},
-                     ENV=os.environ)
+env.Append(BUILDERS={'IVerilog': iverilog, 'VCD': vcd})
 
-out = simenv.IVerilog(TARGET_SIM, src_sim)
-vcd_file = simenv.VCD(SIMULNAME, out)
+# --- Verify
+vout = env.IVerilog(TARGET, src_synth)
 
-waves = simenv.Alias('sim', vcd_file, 'gtkwave ' +
-                     join(env['PROJECT_DIR'], "%s " % vcd_file[0]) +
-                     join(env['PROJECTSRC_DIR'], SIMULNAME) +
-                     '.gtkw')
+verify = env.Alias('verify', vout)
+AlwaysBuild(verify)
+
+# --- Simulation
+sout = env.IVerilog(TARGET_SIM, src_sim)
+vcd_file = env.VCD(sout)
+
+waves = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
+    vcd_file[0], join(env['PROJECTSRC_DIR'], SIMULNAME)))
 AlwaysBuild(waves)
 
 Default([binf])
 
 # -- These is for cleaning the files generated using the alias targets
 if GetOption('clean'):
-    env.Default([t])
-    simenv.Default([out, vcd_file])
+    env.Default([t, vout, sout, vcd_file])

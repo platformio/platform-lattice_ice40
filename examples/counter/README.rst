@@ -12,7 +12,7 @@
 How to build PlatformIO based project
 =====================================
 
-1. `Install PlatformIO <http://docs.platformio.org/en/latest/installation.html>`_
+1. `Install PlatformIO <http://docs.platformio.org/en/stable/installation.html>`_
 2. Download `development platform with examples <https://github.com/platformio/platform-lattice_ice40/archive/develop.zip>`_
 3. Extract ZIP archive
 4. Run these commands:
@@ -25,8 +25,19 @@ How to build PlatformIO based project
     # Build project
     > platformio run
 
-    # Upload the bitstream into the FPGA
+    # Verify project
+    > platformio run --target verify
+
+    # Launch simulation
+    > platformio run --target sim
+
+    # Launch time analysis
+    > platformio run --target time
+
+    # Upload bitstream into the FPGA
     > platformio run --target upload
 
     # Clean build files
     > platformio run --target clean
+
+NOTE: `GTKwave <http://gtkwave.sourceforge.net>`_ is required for simulation

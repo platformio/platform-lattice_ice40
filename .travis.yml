@@ -12,6 +12,7 @@ install:
 
 script:
   - platformio run -d $PLATFORMIO_PROJECT_DIR
+  - platformio run -t verify -d $PLATFORMIO_PROJECT_DIR
 
 notifications:
   email: false

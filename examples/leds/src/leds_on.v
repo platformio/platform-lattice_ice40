@@ -3,7 +3,7 @@
 //-- Hello world example
 //-- Turn on all the yellow leds
 //--------------------------------------------------------------------
-//-- (c) BQ March, 2016. Written by Juan Gonzalez (obijuan)
+//-- March 2016. Written by Juan Gonzalez (obijuan)
 //--------------------------------------------------------------------
 //-- Releases under the GPL v2+ license
 //--------------------------------------------------------------------
