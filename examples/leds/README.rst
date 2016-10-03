@@ -25,11 +25,17 @@ How to build PlatformIO based project
     # Build project
     > platformio run
 
-    # Upload the bitstream into the FPGA
-    > platformio run --target upload
+    # Verify project
+    > platformio run --target verify
 
-    # Launch the simulation
+    # Launch simulation
     > platformio run --target sim
+
+    # Launch time analysis
+    > platformio run --target time
+
+    # Upload bitstream into the FPGA
+    > platformio run --target upload
 
     # Clean build files
     > platformio run --target clean

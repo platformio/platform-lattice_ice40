@@ -50,7 +50,7 @@ IVER_PATH = '-B {0}'.format(IVL_PATH) if isWindows else ''
 v_nodes = Glob(join(env['PROJECTSRC_DIR'], '*.v'))
 src_sim = [str(f) for f in v_nodes]
 
-# --------- Get the Testbench file (there should be only 1)
+# --- Get the Testbench file (there should be only 1)
 # -- Create a list with all the files finished in _tb.v. It should contain
 # -- the test bench
 list_tb = [f for f in src_sim if f[-5:].upper() == "_TB.V"]
@@ -79,8 +79,7 @@ else:
 
 TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME)
 
-# -------- Get the synthesis files.  They are ALL the files except the
-# -------- testbench
+# --- Get the synthesis files. They are ALL the files except the testbench
 src_synth = [f for f in src_sim if f not in list_tb]
 
 # -- For debugging
@@ -123,7 +122,7 @@ bitstream = Builder(
     src_suffix='.asc')
 
 # -- Builder 4 (.asc --> .rpt)
-# NOTE: current icetime requires a fixed PREFIX during compilation
+# NOTE: new icetime requires a fixed PREFIX during compilation
 #       update on toolchain-icestorm 1.10.0
 # https://github.com/cliffordwolf/icestorm/issues/57
 time_rpt = Builder(
@@ -166,11 +165,18 @@ vcd = Builder(
     suffix='.vcd',
     src_suffix='.out')
 
-# -------------------- Simulation ------------------
 env.Append(BUILDERS={'IVerilog': iverilog, 'VCD': vcd})
 
-out = env.IVerilog(TARGET_SIM, src_sim)
-vcd_file = env.VCD(out)
+# --- Verify
+vout = env.IVerilog(TARGET, src_synth)
+
+verify = env.Alias('verify', vout)
+AlwaysBuild(verify)
+
+# --- Simulation
+
+sout = env.IVerilog(TARGET_SIM, src_sim)
+vcd_file = env.VCD(sout)
 
 waves = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
     vcd_file[0], join(env['PROJECTSRC_DIR'], SIMULNAME)))
@@ -180,4 +186,4 @@ Default([binf])
 
 # -- These is for cleaning the files generated using the alias targets
 if GetOption('clean'):
-    env.Default([t, sout, vcd_file])
+    env.Default([t, vout, sout, vcd_file])
