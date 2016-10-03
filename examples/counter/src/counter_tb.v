@@ -1,34 +1,44 @@
-`timescale 100 ns / 10 ns
+//-------------------------------------------------------------------
+//-- counter_tb.v
+//-- Testbench
+//-------------------------------------------------------------------
+//-- March 2016. Written by Juan Gonzalez (Obijuan) and Jesus Arroyo
+//-------------------------------------------------------------------
+
 `default_nettype none
+`timescale 100 ns / 10 ns
+`define DUMPSTR(x) `"x.vcd`"
 
-module counter_tb;
 
-localparam N = 6;  //-- Counter bits length
+module counter_tb();
 
+//-- Simulation time: 1us (10 * 100ns)
+parameter DURATION = 10;
+
+//-- Clock signal. It is not used in this simulation
 reg clk = 0;
+always #0.5 clk = ~clk;
 
+//-- Leds port
 wire [4:0] leds;
 
-//-- Clock generator
-always
-  # 0.5 clk <= ~clk;
+//-- Counter bits length
+localparam N = 6;
 
-  counter #(
-             .N(N)
-  )  CONT0 (
-             .clk(clk),
-             .leds(leds)
-  );
+counter #(
+           .N(N)
+)  CONT0 (
+           .clk(clk),
+           .leds(leds)
+);
 
 initial begin
+  //-- File where to store the simulation
+  $dumpfile(`DUMPSTR(`VCD_OUTPUT));
+  $dumpvars(0, counter_tb);
 
-      //-- File where to store the simulation
-      $dumpfile("counter_tb.vcd");
-      $dumpvars(0, counter_tb);
-
-      #200 $display("END of the simulation");
-      $finish;
-    end
-
+  #(DURATION) $display("END of the simulation");
+  $finish;
+end
 
 endmodule

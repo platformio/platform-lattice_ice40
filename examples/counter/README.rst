@@ -28,5 +28,10 @@ How to build PlatformIO based project
     # Upload the bitstream into the FPGA
     > platformio run --target upload
 
+    # Launch the simulation
+    > platformio run --target sim
+
     # Clean build files
     > platformio run --target clean
+
+NOTE: [GTKwave](http://gtkwave.sourceforge.net/) is required for simulation
