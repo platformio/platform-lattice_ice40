@@ -40,4 +40,4 @@ How to build PlatformIO based project
     # Clean build files
     > platformio run --target clean
 
-NOTE: [GTKwave](http://gtkwave.sourceforge.net/) is required for simulation
+NOTE: `GTKwave <http://gtkwave.sourceforge.net>`_ is required for simulation
