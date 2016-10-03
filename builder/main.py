@@ -34,10 +34,7 @@ env.Append(SIMULNAME="simulation")
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
 
-# Binary extension
-EXT = ''
-if 'Windows' == platform.system():
-    EXT = '.exe'
+# if 'Windows' == platform.system():
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
@@ -62,7 +59,7 @@ except IndexError:
 
 if 'sim' in COMMAND_LINE_TARGETS:
     if testbench is None:
-        print "ERROR!!! NO testbench found for simulation"
+        print "---> ERROR: NO testbench found for simulation"
         Exit(1)
 
     # -- Simulation name
@@ -88,23 +85,21 @@ PCF_list = Glob(PCFs)
 try:
     PCF = PCF_list[0]
 except IndexError:
-    print "\n---> ERROR: no .pcf file found <----------\n"
-    Exit(2)
+    print "---> ERROR: no .pcf file found"
+    Exit(1)
 
 # -- Debug
 print "---> PCF Found: %s" % PCF
 
 # -- Builder 1 (.v --> .blif)
 synth = Builder(
-    action='yosys{0} -p \"synth_ice40 -blif $TARGET\" $SOURCES'.format(
-        EXT),
+    action='yosys -p \"synth_ice40 -blif $TARGET\" $SOURCES',
     suffix='.blif',
     src_suffix='.v')
 
 # -- Builder 2 (.blif --> .asc)
 pnr = Builder(
-    action='arachne-pnr{0} -d {1} -P {2} -p {3} -o $TARGET $SOURCE'.format(
-        EXT,
+    action='arachne-pnr -d {0} -P {1} -p {2} -o $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.size', '1k'),
         env.BoardConfig().get('build.pack', 'tq144'),
         PCF
@@ -114,18 +109,16 @@ pnr = Builder(
 
 # -- Builder 3 (.asc --> .bin)
 bitstream = Builder(
-    action='icepack{0} $SOURCE $TARGET'.format(
-        EXT
-    ),
+    action='icepack $SOURCE $TARGET',
     suffix='.bin',
     src_suffix='.asc')
 
 # -- Builder 4 (.asc --> .rpt)
 # NOTE: current icetime requires a fixed PREFIX during compilation
+#       update on toolchain-icestorm 1.10.0
 # https://github.com/cliffordwolf/icestorm/issues/57
 time_rpt = Builder(
-    action='icetime{0} -d {1}{2} -P {3} -mtr $TARGET $SOURCE'.format(
-        EXT,
+    action='icetime -d {0}{1} -P {2} -mtr $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.type', 'hx'),
         env.BoardConfig().get('build.size', '1k'),
         env.BoardConfig().get('build.pack', 'tq144')
@@ -141,7 +134,7 @@ blif = env.Synth(TARGET, [src_synth])
 asc = env.PnR(TARGET, [blif, PCF])
 binf = env.Bin(TARGET, asc)
 
-upload = env.Alias('upload', binf, 'iceprog{0} $SOURCE'.format(EXT))
+upload = env.Alias('upload', binf, 'iceprog $SOURCE')
 AlwaysBuild(upload)
 
 # -- Target for calculating the time (.rpt)
