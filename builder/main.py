@@ -66,7 +66,17 @@ try:
 except IndexError:
     testbench = None
 
-if 'sim' in COMMAND_LINE_TARGETS:
+SIMULNAME = ''
+TARGET_SIM = ''
+
+# clean
+if len(COMMAND_LINE_TARGETS) == 0:
+    if testbench is not None:
+        # -- Simulation name
+        testbench_file = os.path.split(testbench)[-1]
+        SIMULNAME, ext = os.path.splitext(testbench_file)
+# sim
+elif 'sim' in COMMAND_LINE_TARGETS:
     if testbench is None:
         print("---> ERROR: NO testbench found for simulation")
         Exit(1)
@@ -74,10 +84,10 @@ if 'sim' in COMMAND_LINE_TARGETS:
     # -- Simulation name
     testbench_file = os.path.split(testbench)[-1]
     SIMULNAME, ext = os.path.splitext(testbench_file)
-else:
-    SIMULNAME = ''
 
-TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME)
+# -- Target sim name
+if SIMULNAME:
+    TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME).replace('\\', '\\\\')
 
 # --- Get the synthesis files. They are ALL the files except the testbench
 src_synth = [f for f in src_sim if f not in list_tb]
