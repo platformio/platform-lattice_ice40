@@ -56,7 +56,7 @@ src_sim = [str(f) for f in v_nodes]
 list_tb = [f for f in src_sim if f[-5:].upper() == "_TB.V"]
 
 if len(list_tb) > 1:
-    print "---> WARNING: More than one testbenches used"
+    print("---> WARNING: More than one testbenches used")
 
 # -- Error checking
 try:
@@ -68,7 +68,7 @@ except IndexError:
 
 if 'sim' in COMMAND_LINE_TARGETS:
     if testbench is None:
-        print "---> ERROR: NO testbench found for simulation"
+        print("---> ERROR: NO testbench found for simulation")
         Exit(1)
 
     # -- Simulation name
@@ -83,21 +83,21 @@ TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME)
 src_synth = [f for f in src_sim if f not in list_tb]
 
 # -- For debugging
-print "Testbench: %s" % testbench
+# print("Testbench: %s" % testbench)
 
 # -- Get the PCF file
 src_dir = env.subst('$PROJECTSRC_DIR')
 PCFs = join(src_dir, '*.pcf')
 PCF_list = Glob(PCFs)
+PCF = ''
 
 try:
     PCF = PCF_list[0]
 except IndexError:
-    print "---> ERROR: no .pcf file found"
-    Exit(1)
+    print("---> WARNING: no .pcf file found")
 
 # -- Debug
-print "PCF: %s" % PCF
+# print("PCF: %s" % PCF)
 
 # -- Builder 1 (.v --> .blif)
 synth = Builder(
