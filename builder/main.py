@@ -41,9 +41,9 @@ IVL_PATH = join(
 VLIB_PATH = join(
     pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib', 'system.v')
 
-isWindows = 'Windows' != system()
-VVP_PATH = '-M {0}'.format(IVL_PATH) if isWindows else ''
-IVER_PATH = '-B {0}'.format(IVL_PATH) if isWindows else ''
+isWindows = 'Windows' == system()
+VVP_PATH = '' if isWindows else '-M {0}'.format(IVL_PATH)
+IVER_PATH = '' if isWindows else '-B {0}'.format(IVL_PATH)
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
@@ -152,10 +152,10 @@ AlwaysBuild(t)
 
 # -- Icarus Verilog builders
 iverilog = Builder(
-    action='iverilog {0} -o $TARGET {1} -D VCD_OUTPUT={2} $SOURCES'.format(
-        IVER_PATH, VLIB_PATH, TARGET_SIM),
-   suffix='.out',
-   src_suffix='.v')
+    action='iverilog {0} -o $TARGET -D VCD_OUTPUT={1} {2} $SOURCES'.format(
+        IVER_PATH, TARGET_SIM, VLIB_PATH),
+    suffix='.out',
+    src_suffix='.v')
 
 # NOTE: output file name is defined in the iverilog call using VCD_OUTPUT macro
 vcd = Builder(
