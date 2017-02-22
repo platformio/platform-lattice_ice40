@@ -9,7 +9,7 @@ Lattice iCE40 are the first FPGAs fully usable by open source tools.
 
 # Usage
 
-1. [Install PlatformIO Core](http://docs.platformio.org/en/latest/core.html)
+1. [Install PlatformIO Core](http://docs.platformio.org/page/core.html)
 2. Install Lattice iCE40 development platform:
 
 ```bash
