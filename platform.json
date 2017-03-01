@@ -17,16 +17,17 @@
     "https://dl.bintray.com/platformio/dl-packages/manifest.json",
     "https://sourceforge.net/projects/platformio-storage/files/packages/manifest.json/download",
     "http://dl.platformio.org/packages/manifest.json",
+    "https://raw.githubusercontent.com/FPGAwars/toolchain-icestorm/master/manifest.json",
     "https://raw.githubusercontent.com/FPGAwars/toolchain-iverilog/master/manifest.json"
   ],
   "packages": {
     "toolchain-icestorm": {
       "type": "toolchain",
-      "version": "~1.7.0"
+      "version": "~1.10.0"
     },
     "toolchain-iverilog": {
       "type": "toolchain",
-      "version": "~1.0.0"
+      "version": "~1.1.0"
     }
   }
 }

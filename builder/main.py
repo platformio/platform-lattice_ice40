@@ -32,8 +32,7 @@ env.Replace(
     PROGNAME='hardware',
     UPLOADER='iceprog',
     UPLOADERFLAGS=[],
-    UPLOADBINCMD='$UPLOADER $UPLOADERFLAGS $SOURCES'
-)
+    UPLOADBINCMD='$UPLOADER $UPLOADERFLAGS $SOURCES')
 env.Append(SIMULNAME='simulation')
 
 # -- Target name for synthesis
@@ -44,11 +43,18 @@ pioPlatform = env.PioPlatform()
 IVL_PATH = join(
     pioPlatform.get_package_dir('toolchain-iverilog'), 'lib', 'ivl')
 VLIB_PATH = join(
-    pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib', 'system.v')
+    pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib')
+VLIB_FILES = ' '.join([
+    '"{}"'.format(f) for f in Glob(join(VLIB_PATH, '*.v'))
+    ]) if VLIB_PATH else ''
+
+CHIPDB_PATH = join(
+    pioPlatform.get_package_dir('toolchain-icestorm'), 'share', 'icebox',
+    'chipdb-{0}.txt'.format(env.BoardConfig().get('build.size', '1k')))
 
 isWindows = 'Windows' == system()
-VVP_PATH = '' if isWindows else '-M {0}'.format(IVL_PATH)
-IVER_PATH = '' if isWindows else '-B {0}'.format(IVL_PATH)
+VVP_PATH = '' if isWindows else '-M "{0}"'.format(IVL_PATH)
+IVER_PATH = '' if isWindows else '-B "{0}"'.format(IVL_PATH)
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
@@ -137,14 +143,13 @@ bitstream = Builder(
     src_suffix='.asc')
 
 # -- Builder 4 (.asc --> .rpt)
-# NOTE: new icetime requires a fixed PREFIX during compilation
-#       update on toolchain-icestorm 1.10.0
 # https://github.com/cliffordwolf/icestorm/issues/57
 time_rpt = Builder(
-    action='icetime -d {0}{1} -P {2} -mtr $TARGET $SOURCE'.format(
+    action='icetime -d {0}{1} -P {2} -C "{3}" -mtr $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.type', 'hx'),
         env.BoardConfig().get('build.size', '1k'),
-        env.BoardConfig().get('build.pack', 'tq144')
+        env.BoardConfig().get('build.pack', 'tq144'),
+        CHIPDB_PATH
     ),
     suffix='.rpt',
     src_suffix='.asc')
@@ -162,13 +167,13 @@ AlwaysBuild(target_upload)
 
 # -- Target for calculating the time (.rpt)
 rpt = env.Time(asc)
-t = env.Alias('time', rpt)
-AlwaysBuild(t)
+target_time = env.Alias('time', rpt)
+AlwaysBuild(target_time)
 
 # -- Icarus Verilog builders
 iverilog = Builder(
     action='iverilog {0} -o $TARGET -D VCD_OUTPUT={1} {2} $SOURCES'.format(
-        IVER_PATH, TARGET_SIM, VLIB_PATH),
+        IVER_PATH, TARGET_SIM, VLIB_FILES),
     suffix='.out',
     src_suffix='.v')
 
@@ -184,16 +189,16 @@ env.Append(BUILDERS={'IVerilog': iverilog, 'VCD': vcd})
 # --- Verify
 vout = env.IVerilog(TARGET, src_synth)
 
-verify = env.Alias('verify', vout)
-AlwaysBuild(verify)
+target_verify = env.Alias('verify', vout)
+AlwaysBuild(target_verify)
 
 # --- Simulation
 sout = env.IVerilog(TARGET_SIM, src_sim)
 vcd_file = env.VCD(sout)
 
-waves = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
+target_sim = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
     vcd_file[0], join(env['PROJECTSRC_DIR'], SIMULNAME)))
-AlwaysBuild(waves)
+AlwaysBuild(target_sim)
 
 Default([binf])
 
