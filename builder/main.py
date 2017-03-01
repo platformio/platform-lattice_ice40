@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright 2014-present PlatformIO <contact@platformio.org>
-# Copyright 2016 Juan González <juan@iearobotics.com>
-#                Jesús Arroyo Torrens <jesus.jkhlg@gmail.com>
+# Copyright 2016-present Juan González <juan@iearobotics.com>
+#                        Jesús Arroyo Torrens <jesus.jkhlg@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """
-    Build script for lattice ice40 FPGAs
+    Build script for Lattice iCE40 FPGAs
 """
 
 import os
@@ -28,8 +28,13 @@ from SCons.Script import (COMMAND_LINE_TARGETS, AlwaysBuild, Builder, Default,
                           Glob)
 
 env = DefaultEnvironment()
-env.Replace(PROGNAME="hardware")
-env.Append(SIMULNAME="simulation")
+env.Replace(
+    PROGNAME='hardware',
+    UPLOADER='iceprog',
+    UPLOADERFLAGS=[],
+    UPLOADBINCMD='$UPLOADER $UPLOADERFLAGS $SOURCES'
+)
+env.Append(SIMULNAME='simulation')
 
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
@@ -53,10 +58,10 @@ src_sim = [str(f) for f in v_nodes]
 # --- Get the Testbench file (there should be only 1)
 # -- Create a list with all the files finished in _tb.v. It should contain
 # -- the test bench
-list_tb = [f for f in src_sim if f[-5:].upper() == "_TB.V"]
+list_tb = [f for f in src_sim if f[-5:].upper() == '_TB.V']
 
 if len(list_tb) > 1:
-    print("---> WARNING: More than one testbenches used")
+    print('---> WARNING: More than one testbenches used')
 
 # -- Error checking
 try:
@@ -78,7 +83,7 @@ if len(COMMAND_LINE_TARGETS) == 0:
 # sim
 elif 'sim' in COMMAND_LINE_TARGETS:
     if testbench is None:
-        print("---> ERROR: NO testbench found for simulation")
+        print('---> ERROR: NO testbench found for simulation')
         Exit(1)
 
     # -- Simulation name
@@ -93,7 +98,7 @@ if SIMULNAME:
 src_synth = [f for f in src_sim if f not in list_tb]
 
 # -- For debugging
-# print("Testbench: %s" % testbench)
+# print('Testbench: %s' % testbench)
 
 # -- Get the PCF file
 src_dir = env.subst('$PROJECTSRC_DIR')
@@ -104,14 +109,14 @@ PCF = ''
 try:
     PCF = PCF_list[0]
 except IndexError:
-    print("---> WARNING: no .pcf file found")
+    print('---> WARNING: no .pcf file found')
 
 # -- Debug
-# print("PCF: %s" % PCF)
+# print('PCF: %s' % PCF)
 
 # -- Builder 1 (.v --> .blif)
 synth = Builder(
-    action='yosys -p \"synth_ice40 -blif $TARGET\" $SOURCES',
+    action='yosys -p \"synth_ice40 -blif $TARGET\" -q $SOURCES',
     suffix='.blif',
     src_suffix='.v')
 
@@ -152,8 +157,8 @@ blif = env.Synth(TARGET, [src_synth])
 asc = env.PnR(TARGET, [blif, PCF])
 binf = env.Bin(TARGET, asc)
 
-upload = env.Alias('upload', binf, 'iceprog $SOURCE')
-AlwaysBuild(upload)
+target_upload = env.Alias('upload', binf, '$UPLOADBINCMD')
+AlwaysBuild(target_upload)
 
 # -- Target for calculating the time (.rpt)
 rpt = env.Time(asc)
