@@ -103,9 +103,6 @@ if SIMULNAME:
 # --- Get the synthesis files. They are ALL the files except the testbench
 src_synth = [f for f in src_sim if f not in list_tb]
 
-# -- For debugging
-# print('Testbench: %s' % testbench)
-
 # -- Get the PCF file
 src_dir = env.subst('$PROJECTSRC_DIR')
 PCFs = join(src_dir, '*.pcf')
@@ -117,16 +114,17 @@ try:
 except IndexError:
     print('---> WARNING: no .pcf file found')
 
-# -- Debug
-# print('PCF: %s' % PCF)
-
-# -- Builder 1 (.v --> .blif)
+#
+# Builder: Yosys (.v --> .blif)
+#
 synth = Builder(
     action='yosys -p \"synth_ice40 -blif $TARGET\" -q $SOURCES',
     suffix='.blif',
     src_suffix='.v')
 
-# -- Builder 2 (.blif --> .asc)
+#
+# Builder: Arachne-pnr (.blif --> .asc)
+#
 pnr = Builder(
     action='arachne-pnr -d {0} -P {1} -p {2} -o $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.size', '1k'),
@@ -136,14 +134,17 @@ pnr = Builder(
     suffix='.asc',
     src_suffix='.blif')
 
-# -- Builder 3 (.asc --> .bin)
+#
+# Builder: Icepack (.asc --> .bin)
+#
 bitstream = Builder(
     action='icepack $SOURCE $TARGET',
     suffix='.bin',
     src_suffix='.asc')
 
-# -- Builder 4 (.asc --> .rpt)
-# https://github.com/cliffordwolf/icestorm/issues/57
+#
+# Builder: Icetime (.asc --> .rpt)
+#
 time_rpt = Builder(
     action='icetime -d {0}{1} -P {2} -C "{3}" -mtr $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.type', 'hx'),
@@ -154,7 +155,6 @@ time_rpt = Builder(
     suffix='.rpt',
     src_suffix='.asc')
 
-
 env.Append(BUILDERS={
     'Synth': synth, 'PnR': pnr, 'Bin': bitstream, 'Time': time_rpt})
 
@@ -162,37 +162,49 @@ blif = env.Synth(TARGET, [src_synth])
 asc = env.PnR(TARGET, [blif, PCF])
 binf = env.Bin(TARGET, asc)
 
-target_upload = env.Alias('upload', binf, '$UPLOADBINCMD')
-AlwaysBuild(target_upload)
-
-# -- Target for calculating the time (.rpt)
+#
+# Target: Time analysis (.rpt)
+#
 rpt = env.Time(asc)
+
 target_time = env.Alias('time', rpt)
 AlwaysBuild(target_time)
 
-# -- Icarus Verilog builders
+#
+# Target: Upload bitstream
+#
+target_upload = env.Alias('upload', binf, '$UPLOADBINCMD')
+AlwaysBuild(target_upload)
+
+#
+# Builders: Icarus Verilog
+#
 iverilog = Builder(
     action='iverilog {0} -o $TARGET -D VCD_OUTPUT={1} {2} $SOURCES'.format(
         IVER_PATH, TARGET_SIM, VLIB_FILES),
     suffix='.out',
     src_suffix='.v')
-
-# NOTE: output file name is defined in the iverilog call using VCD_OUTPUT macro
 vcd = Builder(
     action='vvp {0} $SOURCE'.format(
         VVP_PATH),
     suffix='.vcd',
     src_suffix='.out')
+# NOTE: output file name is defined in the
+#       iverilog call using VCD_OUTPUT macro
 
 env.Append(BUILDERS={'IVerilog': iverilog, 'VCD': vcd})
 
-# --- Verify
+#
+# Target: Verify verilog code
+#
 vout = env.IVerilog(TARGET, src_synth)
 
 target_verify = env.Alias('verify', vout)
 AlwaysBuild(target_verify)
 
-# --- Simulation
+#
+# Target: Simulate testbench
+#
 sout = env.IVerilog(TARGET_SIM, src_sim)
 vcd_file = env.VCD(sout)
 
@@ -200,8 +212,13 @@ target_sim = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
     vcd_file[0], join(env['PROJECTSRC_DIR'], SIMULNAME)))
 AlwaysBuild(target_sim)
 
+#
+# Setup default targets
+#
 Default([binf])
 
-# -- These is for cleaning the files generated using the alias targets
+#
+# Target: Clean generated files
+#
 if GetOption('clean'):
     env.Default([t, vout, sout, vcd_file])
