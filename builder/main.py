@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright 2014-present PlatformIO <contact@platformio.org>
-# Copyright 2016 Juan González <juan@iearobotics.com>
-#                Jesús Arroyo Torrens <jesus.jkhlg@gmail.com>
+# Copyright 2016-present Juan González <juan@iearobotics.com>
+#                        Jesús Arroyo Torrens <jesus.jkhlg@gmail.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # limitations under the License.
 
 """
-    Build script for lattice ice40 FPGAs
+    Build script for Lattice iCE40 FPGAs
 """
 
 import os
@@ -28,8 +28,12 @@ from SCons.Script import (COMMAND_LINE_TARGETS, AlwaysBuild, Builder, Default,
                           Glob)
 
 env = DefaultEnvironment()
-env.Replace(PROGNAME="hardware")
-env.Append(SIMULNAME="simulation")
+env.Replace(
+    PROGNAME='hardware',
+    UPLOADER='iceprog',
+    UPLOADERFLAGS=[],
+    UPLOADBINCMD='$UPLOADER $UPLOADERFLAGS $SOURCES')
+env.Append(SIMULNAME='simulation')
 
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
@@ -39,11 +43,18 @@ pioPlatform = env.PioPlatform()
 IVL_PATH = join(
     pioPlatform.get_package_dir('toolchain-iverilog'), 'lib', 'ivl')
 VLIB_PATH = join(
-    pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib', 'system.v')
+    pioPlatform.get_package_dir('toolchain-iverilog'), 'vlib')
+VLIB_FILES = ' '.join([
+    '"{}"'.format(f) for f in Glob(join(VLIB_PATH, '*.v'))
+    ]) if VLIB_PATH else ''
 
-isWindows = 'Windows' != system()
-VVP_PATH = '-M {0}'.format(IVL_PATH) if isWindows else ''
-IVER_PATH = '-B {0}'.format(IVL_PATH) if isWindows else ''
+CHIPDB_PATH = join(
+    pioPlatform.get_package_dir('toolchain-icestorm'), 'share', 'icebox',
+    'chipdb-{0}.txt'.format(env.BoardConfig().get('build.size', '1k')))
+
+isWindows = 'Windows' == system()
+VVP_PATH = '' if isWindows else '-M "{0}"'.format(IVL_PATH)
+IVER_PATH = '' if isWindows else '-B "{0}"'.format(IVL_PATH)
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
@@ -53,10 +64,10 @@ src_sim = [str(f) for f in v_nodes]
 # --- Get the Testbench file (there should be only 1)
 # -- Create a list with all the files finished in _tb.v. It should contain
 # -- the test bench
-list_tb = [f for f in src_sim if f[-5:].upper() == "_TB.V"]
+list_tb = [f for f in src_sim if f[-5:].upper() == '_TB.V']
 
 if len(list_tb) > 1:
-    print "---> WARNING: More than one testbenches used"
+    print('---> WARNING: More than one testbenches used')
 
 # -- Error checking
 try:
@@ -66,46 +77,54 @@ try:
 except IndexError:
     testbench = None
 
-if 'sim' in COMMAND_LINE_TARGETS:
+SIMULNAME = ''
+TARGET_SIM = ''
+
+# clean
+if len(COMMAND_LINE_TARGETS) == 0:
+    if testbench is not None:
+        # -- Simulation name
+        testbench_file = os.path.split(testbench)[-1]
+        SIMULNAME, ext = os.path.splitext(testbench_file)
+# sim
+elif 'sim' in COMMAND_LINE_TARGETS:
     if testbench is None:
-        print "---> ERROR: NO testbench found for simulation"
+        print('---> ERROR: NO testbench found for simulation')
         Exit(1)
 
     # -- Simulation name
     testbench_file = os.path.split(testbench)[-1]
     SIMULNAME, ext = os.path.splitext(testbench_file)
-else:
-    SIMULNAME = ''
 
-TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME)
+# -- Target sim name
+if SIMULNAME:
+    TARGET_SIM = join(env.subst('$BUILD_DIR'), SIMULNAME).replace('\\', '\\\\')
 
 # --- Get the synthesis files. They are ALL the files except the testbench
 src_synth = [f for f in src_sim if f not in list_tb]
-
-# -- For debugging
-print "Testbench: %s" % testbench
 
 # -- Get the PCF file
 src_dir = env.subst('$PROJECTSRC_DIR')
 PCFs = join(src_dir, '*.pcf')
 PCF_list = Glob(PCFs)
+PCF = ''
 
 try:
     PCF = PCF_list[0]
 except IndexError:
-    print "---> ERROR: no .pcf file found"
-    Exit(1)
+    print('---> WARNING: no .pcf file found')
 
-# -- Debug
-print "PCF: %s" % PCF
-
-# -- Builder 1 (.v --> .blif)
+#
+# Builder: Yosys (.v --> .blif)
+#
 synth = Builder(
-    action='yosys -p \"synth_ice40 -blif $TARGET\" $SOURCES',
+    action='yosys -p \"synth_ice40 -blif $TARGET\" -q $SOURCES',
     suffix='.blif',
     src_suffix='.v')
 
-# -- Builder 2 (.blif --> .asc)
+#
+# Builder: Arachne-pnr (.blif --> .asc)
+#
 pnr = Builder(
     action='arachne-pnr -d {0} -P {1} -p {2} -o $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.size', '1k'),
@@ -115,25 +134,26 @@ pnr = Builder(
     suffix='.asc',
     src_suffix='.blif')
 
-# -- Builder 3 (.asc --> .bin)
+#
+# Builder: Icepack (.asc --> .bin)
+#
 bitstream = Builder(
     action='icepack $SOURCE $TARGET',
     suffix='.bin',
     src_suffix='.asc')
 
-# -- Builder 4 (.asc --> .rpt)
-# NOTE: new icetime requires a fixed PREFIX during compilation
-#       update on toolchain-icestorm 1.10.0
-# https://github.com/cliffordwolf/icestorm/issues/57
+#
+# Builder: Icetime (.asc --> .rpt)
+#
 time_rpt = Builder(
-    action='icetime -d {0}{1} -P {2} -mtr $TARGET $SOURCE'.format(
+    action='icetime -d {0}{1} -P {2} -C "{3}" -mtr $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.type', 'hx'),
         env.BoardConfig().get('build.size', '1k'),
-        env.BoardConfig().get('build.pack', 'tq144')
+        env.BoardConfig().get('build.pack', 'tq144'),
+        CHIPDB_PATH
     ),
     suffix='.rpt',
     src_suffix='.asc')
-
 
 env.Append(BUILDERS={
     'Synth': synth, 'PnR': pnr, 'Bin': bitstream, 'Time': time_rpt})
@@ -142,46 +162,63 @@ blif = env.Synth(TARGET, [src_synth])
 asc = env.PnR(TARGET, [blif, PCF])
 binf = env.Bin(TARGET, asc)
 
-upload = env.Alias('upload', binf, 'iceprog $SOURCE')
-AlwaysBuild(upload)
-
-# -- Target for calculating the time (.rpt)
+#
+# Target: Time analysis (.rpt)
+#
 rpt = env.Time(asc)
-t = env.Alias('time', rpt)
-AlwaysBuild(t)
 
-# -- Icarus Verilog builders
+target_time = env.Alias('time', rpt)
+AlwaysBuild(target_time)
+
+#
+# Target: Upload bitstream
+#
+target_upload = env.Alias('upload', binf, '$UPLOADBINCMD')
+AlwaysBuild(target_upload)
+
+#
+# Builders: Icarus Verilog
+#
 iverilog = Builder(
-    action='iverilog {0} -o $TARGET {1} -D VCD_OUTPUT={2} $SOURCES'.format(
-        IVER_PATH, VLIB_PATH, TARGET_SIM),
-   suffix='.out',
-   src_suffix='.v')
-
-# NOTE: output file name is defined in the iverilog call using VCD_OUTPUT macro
+    action='iverilog {0} -o $TARGET -D VCD_OUTPUT={1} {2} $SOURCES'.format(
+        IVER_PATH, TARGET_SIM, VLIB_FILES),
+    suffix='.out',
+    src_suffix='.v')
 vcd = Builder(
     action='vvp {0} $SOURCE'.format(
         VVP_PATH),
     suffix='.vcd',
     src_suffix='.out')
+# NOTE: output file name is defined in the
+#       iverilog call using VCD_OUTPUT macro
 
 env.Append(BUILDERS={'IVerilog': iverilog, 'VCD': vcd})
 
-# --- Verify
+#
+# Target: Verify verilog code
+#
 vout = env.IVerilog(TARGET, src_synth)
 
-verify = env.Alias('verify', vout)
-AlwaysBuild(verify)
+target_verify = env.Alias('verify', vout)
+AlwaysBuild(target_verify)
 
-# --- Simulation
+#
+# Target: Simulate testbench
+#
 sout = env.IVerilog(TARGET_SIM, src_sim)
 vcd_file = env.VCD(sout)
 
-waves = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
+target_sim = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
     vcd_file[0], join(env['PROJECTSRC_DIR'], SIMULNAME)))
-AlwaysBuild(waves)
+AlwaysBuild(target_sim)
 
+#
+# Setup default targets
+#
 Default([binf])
 
-# -- These is for cleaning the files generated using the alias targets
+#
+# Target: Clean generated files
+#
 if GetOption('clean'):
     env.Default([t, vout, sout, vcd_file])
