@@ -12,10 +12,9 @@
     "type": "git",
     "url": "https://github.com/platformio/platform-lattice_ice40.git"
   },
-  "version": "1.2.0",
+  "version": "1.2.1",
   "packageRepositories": [
     "https://dl.bintray.com/platformio/dl-packages/manifest.json",
-    "https://sourceforge.net/projects/platformio-storage/files/packages/manifest.json/download",
     "http://dl.platformio.org/packages/manifest.json",
     "https://raw.githubusercontent.com/FPGAwars/toolchain-icestorm/master/manifest.json",
     "https://raw.githubusercontent.com/FPGAwars/toolchain-iverilog/master/manifest.json"
