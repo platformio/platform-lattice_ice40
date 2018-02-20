@@ -10,9 +10,9 @@
       ]
     ],
     "mcu": "iCE40-HX1K-TQ144",
+    "pack": "tq144",
     "size": "1k",
-    "type": "hx",
-    "pack": "tq144"
+    "type": "hx"
   },
   "frameworks": [
     "icestorm"
