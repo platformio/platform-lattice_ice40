@@ -126,7 +126,7 @@ synth = Builder(
 # Builder: Arachne-pnr (.blif --> .asc)
 #
 pnr = Builder(
-    action='arachne-pnr -d {0} -P {1} -p {2} -o $TARGET $SOURCE'.format(
+    action='arachne-pnr -d {0} -P {1} -p "{2}" -o $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.size', '1k'),
         env.BoardConfig().get('build.pack', 'tq144'),
         PCF
