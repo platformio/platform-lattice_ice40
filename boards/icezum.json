@@ -14,9 +14,7 @@
     "size": "1k",
     "type": "hx"
   },
-  "frameworks": [
-    "icestorm"
-  ],
+  "frameworks": [],
   "name": "IceZUM Alhambra FPGA",
   "upload": {
     "maximum_ram_size": 32768,

@@ -14,9 +14,7 @@
     "size": "1k",
     "type": "hx"
   },
-  "frameworks": [
-    "icestorm"
-  ],
+  "frameworks": [],
   "name": "Lattice iCEstick FPGA Evaluation Kit",
   "upload": {
     "maximum_ram_size": 32768,
