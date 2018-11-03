@@ -10,13 +10,11 @@
       ]
     ],
     "mcu": "iCE40-HX1K-TQ144",
+    "pack": "tq144",
     "size": "1k",
-    "type": "hx",
-    "pack": "tq144"
+    "type": "hx"
   },
-  "frameworks": [
-    "icestorm"
-  ],
+  "frameworks": [],
   "name": "IceZUM Alhambra FPGA",
   "upload": {
     "maximum_ram_size": 32768,

@@ -24,10 +24,12 @@ from os.path import join
 from platform import system
 
 from SCons.Script import (COMMAND_LINE_TARGETS, AlwaysBuild, Builder, Default,
-                          DefaultEnvironment, Environment, Exit, GetOption,
+                          DefaultEnvironment, Exit, GetOption,
                           Glob)
 
 env = DefaultEnvironment()
+pioPlatform = env.PioPlatform()
+
 env.Replace(
     PROGNAME='hardware',
     UPLOADER='iceprog',
@@ -35,11 +37,16 @@ env.Replace(
     UPLOADBINCMD='$UPLOADER $UPLOADERFLAGS $SOURCES')
 env.Append(SIMULNAME='simulation')
 
+if "Darwin" == system():
+    env.PrependENVPath(
+        "DYLD_LIBRARY_PATH",
+        join(pioPlatform.get_package_dir('toolchain-icestorm'), "lib")
+    )
+
 # -- Target name for synthesis
 TARGET = join(env['BUILD_DIR'], env['PROGNAME'])
 
 # -- Resources paths
-pioPlatform = env.PioPlatform()
 IVL_PATH = join(
     pioPlatform.get_package_dir('toolchain-iverilog'), 'lib', 'ivl')
 VLIB_PATH = join(
@@ -126,7 +133,7 @@ synth = Builder(
 # Builder: Arachne-pnr (.blif --> .asc)
 #
 pnr = Builder(
-    action='arachne-pnr -d {0} -P {1} -p {2} -o $TARGET $SOURCE'.format(
+    action='arachne-pnr -d {0} -P {1} -p "{2}" -o $TARGET $SOURCE'.format(
         env.BoardConfig().get('build.size', '1k'),
         env.BoardConfig().get('build.pack', 'tq144'),
         PCF
