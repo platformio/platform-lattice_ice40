@@ -65,7 +65,7 @@ IVER_PATH = '' if isWindows else '-B "{0}"'.format(IVL_PATH)
 
 # -- Get a list of all the verilog files in the src folfer, in ASCII, with
 # -- the full path. All these files are used for the simulation
-v_nodes = Glob(join(env['PROJECT_SRC_DIR'], '*.v'))
+v_nodes = Glob(join(env.subst('$PROJECT_SRC_DIR'), '*.v'))
 src_sim = [str(f) for f in v_nodes]
 
 # --- Get the Testbench file (there should be only 1)
@@ -216,7 +216,7 @@ sout = env.IVerilog(TARGET_SIM, src_sim)
 vcd_file = env.VCD(sout)
 
 target_sim = env.Alias('sim', vcd_file, 'gtkwave {0} {1}.gtkw'.format(
-    vcd_file[0], join(env['PROJECT_SRC_DIR'], SIMULNAME)))
+    vcd_file[0], join(env.subst('$PROJECT_SRC_DIR'), SIMULNAME)))
 AlwaysBuild(target_sim)
 
 #
