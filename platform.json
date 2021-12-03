@@ -17,7 +17,7 @@
     "type": "git",
     "url": "https://github.com/platformio/platform-lattice_ice40.git"
   },
-  "version": "1.2.3",
+  "version": "1.2.4",
   "packages": {
     "toolchain-icestorm": {
       "type": "toolchain",
