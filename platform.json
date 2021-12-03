@@ -11,24 +11,22 @@
       "FPGA"
   ],
   "engines": {
-    "platformio": "<5"
+    "platformio": "^5"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/platformio/platform-lattice_ice40.git"
   },
-  "version": "1.2.3",
-  "packageRepositories": [
-    "https://dl.bintray.com/platformio/dl-packages/manifest.json",
-    "http://dl.platformio.org/packages/manifest.json"
-  ],
+  "version": "1.2.4",
   "packages": {
     "toolchain-icestorm": {
       "type": "toolchain",
+      "owner": "platformio",
       "version": "~1.10.0"
     },
     "toolchain-iverilog": {
       "type": "toolchain",
+      "owner": "platformio",
       "version": "~1.1.0"
     }
   }
