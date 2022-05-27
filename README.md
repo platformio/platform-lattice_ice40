@@ -1,6 +1,7 @@
-# Lattice iCE40: development platform for [PlatformIO](http://platformio.org)
-[![Build Status](https://travis-ci.org/platformio/platform-lattice_ice40.svg?branch=develop)](https://travis-ci.org/platformio/platform-lattice_ice40)
-[![Build status](https://ci.appveyor.com/api/projects/status/4q0e67cy1ax5x67a/branch/develop?svg=true)](https://ci.appveyor.com/project/ivankravets/platform-lattice_ice40/branch/develop)
+# Lattice iCE40: development platform for [PlatformIO](https://platformio.org)
+
+[![Build Status](https://github.com/platformio/platform-lattice_ice40/workflows/Examples/badge.svg)](https://github.com/platformio/platform-lattice_ice40/actions)
+
 
 Lattice iCE40 are the first FPGAs fully usable by open source tools.
 
@@ -9,7 +10,7 @@ Lattice iCE40 are the first FPGAs fully usable by open source tools.
 
 # Usage
 
-1. [Install PlatformIO](http://platformio.org)
+1. [Install PlatformIO](https://platformio.org)
 2. Create PlatformIO project and configure a platform option in [platformio.ini](https://docs.platformio.org/page/projectconf.html) file:
 
 ## Stable version
