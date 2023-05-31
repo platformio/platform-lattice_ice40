@@ -1,0 +1,25 @@
+{
+  "build": {
+    "core": "alambra-ii",
+    "cpu": "fpga",
+    "f_cpu": "12000000L",
+    "hwids": [
+      [
+        "0x0403",
+        "0x6010"
+      ]
+    ],
+    "mcu": "iCE40-HX4K-TQ144",
+    "pack": "tq144",
+    "size": "4k",
+    "type": "hx"
+  },
+  "frameworks": [],
+  "name": "Alhambra II FPGA",
+  "upload": {
+    "maximum_ram_size": 32768,
+    "maximum_size": 32768
+  },
+  "url": "https://github.com/FPGAwars/Alhambra-II-FPGA",
+  "vendor": "FPGAwars"
+}
